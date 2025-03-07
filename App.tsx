@@ -1,130 +1,182 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, FlatList, Image, TouchableOpacity, Dimensions, Modal, Animated, TouchableWithoutFeedback, StyleSheet } from 'react-native';
+import GradientCircle from './GradientCircle';
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
-
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
+interface Story {
+  id: number;
+  uri: string;
 }
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+const App = () => {
+  const [stories, setStories] = useState<Story[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const progress = useRef(new Animated.Value(0)).current;
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  useEffect(() => {
+    let isMounted = true;
+    const loadStories = async () => {
+      try {
+        const data = await require('./stories.json');
+        if (isMounted) setStories(data.stories);
+      } catch (error) {
+        console.error('Failed to load stories:', error);
+      }
+    };
+    loadStories();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (selectedIndex !== null) {
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: 5000,
+        useNativeDriver: false,
+      }).start(({ finished }) => {
+        if (finished) handleNext();
+      });
+    }
+  }, [selectedIndex]);
+
+  const handleStoryPress = (index: number) => setSelectedIndex(index);
+  const handleClose = () => setSelectedIndex(null);
+
+  const handleNext = () => {
+    if (selectedIndex === null) return;
+    if (selectedIndex < stories.length - 1) {
+      progress.setValue(0);
+      setSelectedIndex(prev => (prev || 0) + 1);
+    } else {
+      handleClose();
+    }
   };
 
-  /*
-   * To keep the template simple and small we're adding padding to prevent view
-   * from rendering under the System UI.
-   * For bigger apps the reccomendation is to use `react-native-safe-area-context`:
-   * https://github.com/AppAndFlow/react-native-safe-area-context
-   *
-   * You can read more about it here:
-   * https://github.com/react-native-community/discussions-and-proposals/discussions/827
-   */
-  const safePadding = '5%';
+  const handlePrev = () => {
+    if (selectedIndex === null || selectedIndex === 0) return;
+    progress.setValue(0);
+    setSelectedIndex(prev => (prev || 0) - 1);
+  };
+
+  const renderItem = ({ item, index }: { item: Story; index: number }) => (
+    <TouchableOpacity
+      onPress={() => handleStoryPress(index)}
+      testID={`story-thumbnail-${index}`}
+    >
+      <GradientCircle>
+        <Image
+          source={{ uri: item.uri }}
+          style={{ width: 74, height: 74, borderRadius: 37 }}
+        />
+      </GradientCircle>
+    </TouchableOpacity>
+  );
 
   return (
-    <View style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Instagram</Text>
+      </View>
+      <FlatList
+        data={stories}
+        renderItem={renderItem}
+        keyExtractor={item => item.id.toString()}
+        horizontal
+        showsHorizontalScrollIndicator={false}
       />
-      <ScrollView
-        style={backgroundStyle}>
-        <View style={{paddingRight: safePadding}}>
-          <Header/>
-        </View>
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-            paddingHorizontal: safePadding,
-            paddingBottom: safePadding,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
+
+      <Modal visible={selectedIndex !== null} transparent testID="story-viewer">
+        {selectedIndex !== null && (
+          <View style={{ flex: 1, backgroundColor: 'black' }}>
+            {/* Progress Bar */}
+            <View style={{ flexDirection: 'row', padding: 10 }}>
+              {stories.map((_, i) => (
+                <View
+                  key={i}
+                  style={{
+                    flex: 1,
+                    height: 2,
+                    backgroundColor: 'rgba(255,255,255,0.3)',
+                    marginHorizontal: 2,
+                  }}>
+                  {i === selectedIndex && (
+                    <Animated.View
+                      style={{
+                        flex: 1,
+                        backgroundColor: 'white',
+                        width: progress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0%', '100%'],
+                        }),
+                      }}
+                    />
+                  )}
+                </View>
+              ))}
+            </View>
+            <View style={{ position: 'absolute', top: 50, right: 20, zIndex: 1 }}>
+              <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+                <Text style={styles.closeText}>×</Text>
+              </TouchableOpacity>
+            </View>
+            {/* Story Image */}
+            <TouchableWithoutFeedback onPress={handleClose}>
+              <Image
+                source={{ uri: stories[selectedIndex].uri }}
+                style={{
+                  width: Dimensions.get('window').width,
+                  height: Dimensions.get('window').height - 50,
+                  resizeMode: 'contain',
+                }}
+              />
+            </TouchableWithoutFeedback>
+
+            {/* Navigation Controls */}
+            <View style={{ position: 'absolute', flexDirection: 'row', top: 0, bottom: 0, left: 0, right: 0 }}>
+              <TouchableWithoutFeedback onPress={handlePrev}>
+                <View style={{ flex: 1 }} />
+              </TouchableWithoutFeedback>
+              <TouchableWithoutFeedback onPress={handleNext}>
+                <View style={{ flex: 1 }} />
+              </TouchableWithoutFeedback>
+            </View>
+          </View>
+        )}
+      </Modal>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
   },
-  sectionTitle: {
+  header: {
+    padding: 8,
+    alignItems: 'left',
+    fontFamily: 'InstagramSans',
+  },
+  headerText: {
+    fontFamily: 'InstagramSans',
     fontSize: 24,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    color: '#333',
+    margin: 8,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  closeButton: {
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  highlight: {
-    fontWeight: '700',
+  closeText: {
+    color: '#949494',
+    fontSize: 24,
+    lineHeight: 26,
   },
 });
 
