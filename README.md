@@ -25,6 +25,7 @@ Play URL  : https://appetize.io/app/b_fzeke75zfduhzoob6ry4tigzra
 ```bash
 git clone https://github.com/ADARSHKM123/Instagram_Stories_Feature_Mob
 
+npm install
 ## Run on iOS:
 1.npx react-native run-ios
 
