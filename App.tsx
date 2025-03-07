@@ -121,7 +121,6 @@ const App = () => {
                 <Text style={styles.closeText}>×</Text>
               </TouchableOpacity>
             </View>
-            {/* Story Image */}
             <TouchableWithoutFeedback onPress={handleClose}>
               <Image
                 source={{ uri: stories[selectedIndex].uri }}
@@ -133,7 +132,6 @@ const App = () => {
               />
             </TouchableWithoutFeedback>
 
-            {/* Navigation Controls */}
             <View style={{ position: 'absolute', flexDirection: 'row', top: 0, bottom: 0, left: 0, right: 0 }}>
               <TouchableWithoutFeedback onPress={handlePrev}>
                 <View style={{ flex: 1 }} />
