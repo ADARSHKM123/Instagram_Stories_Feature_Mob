@@ -13,7 +13,7 @@ A simplified implementation of Instagram Stories functionality for mobile device
 - ⚡ Smooth transitions and animations
 
 ## Demo
-[Live Demo](#) (Upload your APK/IPA to services like Appetize.io for web preview)
+[Live Demo](#) https://appetize.io/embed/b_fzeke75zfduhzoob6ry4tigzra
 
 ## Installation
 
